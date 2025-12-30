@@ -290,3 +290,60 @@ Return ONLY a JSON array of 5 strings (no explanation):
     ];
   }
 }
+
+export interface ATSScore {
+  score: number;
+  keywordMatch: number;
+  formatting: number;
+  relevance: number;
+  strengths: string[];
+  improvements: string[];
+  feedback: string;
+}
+
+export async function calculateATSScore(resumeContent: string, jobRole: JobRole): Promise<ATSScore> {
+  const roleLabels: Record<JobRole, string> = {
+    'software-engineer': 'Software Engineer',
+    'data-analyst': 'Data Analyst',
+    'product-manager': 'Product Manager',
+    'hr-manager': 'HR Manager',
+    'marketing-manager': 'Marketing Manager',
+    'sales-representative': 'Sales Representative',
+    'ux-designer': 'UX Designer',
+    'devops-engineer': 'DevOps Engineer',
+  };
+
+  const prompt = `Analyze this resume for an ATS (Applicant Tracking System) score for a ${roleLabels[jobRole]} position.
+
+RESUME CONTENT:
+${resumeContent}
+
+Evaluate and return ONLY valid JSON (no markdown, no explanation):
+{
+  "score": <0-100 overall ATS score>,
+  "keywordMatch": <0-100 score for relevant keywords and skills>,
+  "formatting": <0-100 score for ATS-friendly formatting>,
+  "relevance": <0-100 score for role relevance>,
+  "strengths": ["strength1", "strength2", "strength3"],
+  "improvements": ["improvement1", "improvement2", "improvement3"],
+  "feedback": "Brief feedback on resume quality for ATS"
+}`;
+
+  try {
+    const response = await callGemini(prompt);
+    const result = parseJsonFromResponse(response);
+    
+    return {
+      score: Math.min(100, Math.max(0, result.score || 0)),
+      keywordMatch: Math.min(100, Math.max(0, result.keywordMatch || 0)),
+      formatting: Math.min(100, Math.max(0, result.formatting || 0)),
+      relevance: Math.min(100, Math.max(0, result.relevance || 0)),
+      strengths: result.strengths || [],
+      improvements: result.improvements || [],
+      feedback: result.feedback || '',
+    };
+  } catch (error) {
+    console.error('Error calculating ATS score:', error);
+    throw new Error('Failed to calculate ATS score');
+  }
+}

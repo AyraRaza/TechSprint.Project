@@ -31,10 +31,11 @@ import {
   Sparkles,
   Camera,
   Clock,
-  FileCheck
+  FileCheck,
+  Award
 } from 'lucide-react';
 import { JOB_ROLES, DIFFICULTIES, ROUND_TYPES, JobRole, Difficulty, RoundType } from '@/types/interview';
-import { parseResume } from '@/lib/gemini';
+import { parseResume, calculateATSScore, ATSScore } from '@/lib/gemini';
 import { cn } from '@/lib/utils';
 
 
@@ -55,6 +56,8 @@ const InterviewSetup = () => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeContent, setResumeContent] = useState<string | null>(null);
   const [isParsingResume, setIsParsingResume] = useState(false);
+  const [atsScore, setATSScore] = useState<ATSScore | null>(null);
+  const [isCalculatingATS, setIsCalculatingATS] = useState(false);
 
   // Auto-request camera permission if proctoring is enabled
   useEffect(() => {
@@ -120,8 +123,32 @@ const InterviewSetup = () => {
   const removeResume = () => {
     setResumeFile(null);
     setResumeContent(null);
+    setATSScore(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCheckATSScore = async () => {
+    if (!resumeContent || !selectedRole) return;
+
+    setIsCalculatingATS(true);
+    try {
+      const score = await calculateATSScore(resumeContent, selectedRole);
+      setATSScore(score);
+      toast({
+        title: 'ATS Score Calculated',
+        description: `Your resume scored ${score.score}/100 on ATS compatibility`,
+      });
+    } catch (error) {
+      console.error('Error calculating ATS score:', error);
+      toast({
+        title: 'Failed to calculate ATS score',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCalculatingATS(false);
     }
   };
 
@@ -392,6 +419,97 @@ const InterviewSetup = () => {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* ATS Score Button */}
+                {resumeFile && resumeContent && !isParsingResume && (
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <Award className="h-6 w-6 mr-3 text-amber-600" />
+                      ATS Score
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Check how well your resume matches Applicant Tracking Systems for this role.
+                    </p>
+                    <Button
+                      onClick={handleCheckATSScore}
+                      disabled={isCalculatingATS || !selectedRole}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2"
+                    >
+                      {isCalculatingATS ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Calculating ATS Score...
+                        </>
+                      ) : (
+                        <>
+                          <Award className="h-5 w-5 mr-2" />
+                          Check ATS Score
+                        </>
+                      )}
+                    </Button>
+                    
+                    {atsScore && (
+                      <div className="mt-6 space-y-4">
+                        <div className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-slate-700 dark:to-slate-600 rounded-xl p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-bold text-gray-900 dark:text-white">Overall ATS Score</h4>
+                            <div className="text-4xl font-bold text-amber-600 dark:text-amber-400">{atsScore.score}</div>
+                          </div>
+                          <div className="w-full bg-gray-300 dark:bg-slate-500 rounded-full h-3">
+                            <div
+                              className="bg-gradient-to-r from-amber-500 to-amber-600 h-3 rounded-full transition-all duration-500"
+                              style={{ width: `${atsScore.score}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-gray-700 dark:text-gray-300 text-sm mt-4">{atsScore.feedback}</p>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="bg-blue-50 dark:bg-slate-700/50 rounded-lg p-4 text-center">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Keyword Match</p>
+                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{atsScore.keywordMatch}</p>
+                          </div>
+                          <div className="bg-green-50 dark:bg-slate-700/50 rounded-lg p-4 text-center">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Formatting</p>
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{atsScore.formatting}</p>
+                          </div>
+                          <div className="bg-purple-50 dark:bg-slate-700/50 rounded-lg p-4 text-center">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Relevance</p>
+                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{atsScore.relevance}</p>
+                          </div>
+                        </div>
+
+                        {atsScore.strengths.length > 0 && (
+                          <div className="bg-green-50 dark:bg-slate-700/50 rounded-lg p-4">
+                            <p className="font-semibold text-green-900 dark:text-green-300 mb-3">Strengths</p>
+                            <ul className="space-y-2">
+                              {atsScore.strengths.map((strength, idx) => (
+                                <li key={idx} className="text-sm text-green-800 dark:text-green-200 flex items-start">
+                                  <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
+                                  {strength}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {atsScore.improvements.length > 0 && (
+                          <div className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-4">
+                            <p className="font-semibold text-amber-900 dark:text-amber-300 mb-3">Areas to Improve</p>
+                            <ul className="space-y-2">
+                              {atsScore.improvements.map((improvement, idx) => (
+                                <li key={idx} className="text-sm text-amber-800 dark:text-amber-200 flex items-start">
+                                  <Target className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                                  {improvement}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Difficulty Selection */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
