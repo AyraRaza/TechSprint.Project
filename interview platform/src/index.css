@@ -1,0 +1,184 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 174 72% 56%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 263 70% 58%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 14%;
+    --ring: 174 72% 56%;
+
+    --radius: 0.75rem;
+
+    --success: 142 76% 46%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
+
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(174 72% 56%) 0%,
+      hsl(199 89% 48%) 100%
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(263 70% 58%) 0%,
+      hsl(174 72% 56%) 100%
+    );
+    --gradient-dark: linear-gradient(
+      180deg,
+      hsl(222 47% 8%) 0%,
+      hsl(222 47% 4%) 100%
+    );
+
+    --glass-bg: hsla(222, 47%, 10%, 0.6);
+    --glass-border: hsla(210, 40%, 98%, 0.08);
+
+    --shadow-glow: 0 0 40px hsla(174, 72%, 56%, 0.15);
+    --shadow-card: 0 8px 32px hsla(0, 0%, 0%, 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Space Grotesk", sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-primary);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .glow-effect {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px hsla(174, 72%, 56%, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 40px hsla(174, 72%, 56%, 0.4);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out forwards;
+  }
+
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+}
