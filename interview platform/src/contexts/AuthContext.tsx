@@ -8,7 +8,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
-import { createUserProfile, getUserProfile, updateUserProfile } from '@/services/firebaseService';
+import { createUserProfile, createHRUserProfile, getUserProfile, updateUserProfile } from '@/services/firebaseService';
 import { UserProfile } from '@/types/interview';
 
 interface AuthContextType {
@@ -17,6 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  hrSignup: (email: string, password: string, name: string, companyName: string, companySize: string, hrRole: string, companyWebsite?: string, linkedin?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -96,6 +97,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const hrSignup = async (email: string, password: string, name: string, companyName: string, companySize: string, hrRole: string, companyWebsite?: string, linkedin?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await createHRUserProfile(result.user.uid, email, name, companyName, companySize, hrRole, companyWebsite, linkedin, password);
+      return { success: true };
+    } catch (error: any) {
+      console.error('HR Signup error:', error);
+      const errorMessages: Record<string, string> = {
+        'auth/email-already-in-use': 'An account with this email already exists',
+        'auth/weak-password': 'Password must be at least 6 characters',
+        'auth/invalid-email': 'Invalid email address',
+      };
+      return { success: false, error: errorMessages[error.code] || 'HR Signup failed' };
+    }
+  };
+
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -134,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       login,
       signup,
+      hrSignup,
       loginWithGoogle,
       logout,
       updateProfile: updateProfileHandler,

@@ -13,6 +13,8 @@ import Profile from "./pages/Profile";
 import InterviewSetup from "./pages/InterviewSetup";
 import InterviewSession from "./pages/InterviewSession";
 import Results from "./pages/Results";
+import HRSignup from "./pages/HRSignup";
+import HRDashboard from "./pages/HRDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +53,12 @@ const App = () => (
               <Route path="/results" element={
                 <ProtectedRoute>
                   <Results />
+                </ProtectedRoute>
+              } />
+              <Route path="/hr/signup" element={<HRSignup />} />
+              <Route path="/hr/dashboard" element={
+                <ProtectedRoute>
+                  <HRDashboard />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
