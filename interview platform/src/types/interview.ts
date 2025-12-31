@@ -73,10 +73,30 @@ export interface UserProfile {
   github?: string;
   portfolio?: string;
   skills?: string;
+  // HR-specific fields
+  companyName?: string;
+  companySize?: string;
+  hrRole?: string;
+  companyWebsite?: string;
   totalInterviews: number;
   averageScore: number;
   streakDays: number;
   badges: string[];
+  createdAt: Date;
+}
+
+export interface HiringPost {
+  id: string;
+  hrId: string;
+  companyName: string;
+  title: string;
+  description: string;
+  location: string;
+  jobType: string;
+  salaryRange?: string;
+  requirements: string[];
+  responsibilities: string[];
+  status: 'active' | 'closed';
   createdAt: Date;
 }
 

@@ -14,15 +14,16 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
-import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback } from '@/types/interview';
+import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback, HiringPost } from '@/types/interview';
 
 // User operations
 export async function createUserProfile(userId: string, email: string, name: string): Promise<UserProfile> {
   const userRef = doc(db, 'users', userId);
-  const profile: Omit<UserProfile, 'createdAt'> & { createdAt: any } = {
+  const profile: Omit<UserProfile, 'createdAt'> & { createdAt: any; role: string } = {
     id: userId,
     email,
     name,
+    role: 'candidate',
     totalInterviews: 0,
     averageScore: 0,
     streakDays: 0,
@@ -31,126 +32,104 @@ export async function createUserProfile(userId: string, email: string, name: str
   };
 
   await setDoc(userRef, profile);
-  
+
   return {
     ...profile,
     createdAt: new Date(),
   };
 }
 
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const userRef = doc(db, 'users', userId);
-  const snapshot = await getDoc(userRef);
+export async function createHRUserProfile(
+  userId: string,
+  email: string,
+  name: string,
+  companyName: string,
+  companySize: string,
+  hrRole: string,
+  companyWebsite?: string,
+  linkedin?: string,
+  password?: string
+): Promise<UserProfile> {
+  const hrRef = doc(db, 'hr_profiles', userId);
   
-  if (!snapshot.exists()) return null;
-  
-  const data = snapshot.data();
+  const hrProfile = {
+    id: userId,
+    email,
+    name,
+    password: password || null,
+    role: 'HR',
+    companyName,
+    companySize,
+    hrRole,
+    companyWebsite: companyWebsite || null,
+    linkedin: linkedin || null,
+    totalInterviews: 0,
+    averageScore: 0,
+    streakDays: 0,
+    badges: [],
+    createdAt: serverTimestamp(),
+  };
+
+  await setDoc(hrRef, hrProfile);
+
   return {
-    ...data,
-    id: snapshot.id,
-    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+    ...hrProfile,
+    createdAt: new Date(),
   } as UserProfile;
 }
 
-export async function updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  // Check users collection first (candidates)
   const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, updates);
+  const snapshot = await getDoc(userRef);
+  
+  if (snapshot.exists()) {
+    const userData = snapshot.data();
+    return {
+      ...userData,
+      id: snapshot.id,
+      createdAt: userData.createdAt instanceof Timestamp ? userData.createdAt.toDate() : new Date(userData.createdAt),
+    } as UserProfile;
+  }
+
+  // If not found in users, check hr_profiles collection
+  const hrRef = doc(db, 'hr_profiles', userId);
+  const hrSnapshot = await getDoc(hrRef);
+  
+  if (hrSnapshot.exists()) {
+    const hrData = hrSnapshot.data();
+    return {
+      ...hrData,
+      id: hrSnapshot.id,
+      createdAt: hrData.createdAt instanceof Timestamp ? hrData.createdAt.toDate() : new Date(hrData.createdAt),
+    } as UserProfile;
+  }
+  
+  return null;
 }
 
-export async function updateUserStats(userId: string, newScore: number): Promise<void> {
-  const userRef = doc(db, 'users', userId);
-  const userSnapshot = await getDoc(userRef);
-  
-  if (!userSnapshot.exists()) return;
-  
-  const userData = userSnapshot.data();
-  const totalInterviews = (userData.totalInterviews || 0) + 1;
-  const currentTotal = (userData.averageScore || 0) * (userData.totalInterviews || 0);
-  const newAverage = (currentTotal + newScore) / totalInterviews;
-  
-  await updateDoc(userRef, {
-    totalInterviews,
-    averageScore: Math.round(newAverage * 10) / 10,
-  });
-}
-
-// Interview session operations
-export interface FirestoreInterviewSession {
-  id: string;
-  userId: string;
-  jobRole: JobRole;
-  difficulty: Difficulty;
-  roundType: RoundType;
-  questions: InterviewQuestion[];
-  answers: Record<string, string>;
-  feedback: QuestionFeedback[];
-  totalScore: number;
-  resumeUsed: boolean;
-  resumeContent?: string;
-  createdAt: Date;
-  completedAt?: Date;
-}
-
-export async function createInterviewSession(
-  userId: string,
-  jobRole: JobRole,
-  difficulty: Difficulty,
-  roundType: RoundType,
-  questions: InterviewQuestion[],
-  resumeContent?: string
-): Promise<FirestoreInterviewSession> {
-  const sessionData = {
-    userId,
-    jobRole,
-    difficulty,
-    roundType,
-    questions,
-    answers: {},
-    feedback: [],
-    totalScore: 0,
-    resumeUsed: !!resumeContent,
-    resumeContent: resumeContent || null,
+// Hiring Post operations
+export async function createHiringPost(postData: Omit<HiringPost, 'id' | 'createdAt' | 'status'>): Promise<HiringPost> {
+  const data = {
+    ...postData,
+    status: 'active',
     createdAt: serverTimestamp(),
-    completedAt: null,
   };
-
-  const docRef = await addDoc(collection(db, 'interviews'), sessionData);
+  
+  const docRef = await addDoc(collection(db, 'hiring_posts'), data);
   
   return {
     id: docRef.id,
-    ...sessionData,
+    ...data,
+    status: 'active',
     createdAt: new Date(),
-    completedAt: undefined,
-  };
+  } as HiringPost;
 }
 
-export async function updateInterviewSession(
-  sessionId: string,
-  updates: Partial<Omit<FirestoreInterviewSession, 'id' | 'userId' | 'createdAt'>>
-): Promise<void> {
-  const sessionRef = doc(db, 'interviews', sessionId);
-  await updateDoc(sessionRef, updates);
-}
-
-export async function completeInterviewSession(
-  sessionId: string,
-  answers: Record<string, string>,
-  feedback: QuestionFeedback[],
-  totalScore: number
-): Promise<void> {
-  const sessionRef = doc(db, 'interviews', sessionId);
-  await updateDoc(sessionRef, {
-    answers,
-    feedback,
-    totalScore,
-    completedAt: serverTimestamp(),
-  });
-}
-
-export async function getUserInterviews(userId: string): Promise<FirestoreInterviewSession[]> {
+export async function getHRHiringPosts(hrId: string): Promise<HiringPost[]> {
   const q = query(
-    collection(db, 'interviews'),
-    where('userId', '==', userId),
+    collection(db, 'hiring_posts'),
+    where('hrId', '==', hrId),
     orderBy('createdAt', 'desc')
   );
   
@@ -162,171 +141,221 @@ export async function getUserInterviews(userId: string): Promise<FirestoreInterv
       id: doc.id,
       ...data,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-      completedAt: data.completedAt instanceof Timestamp ? data.completedAt.toDate() : data.completedAt ? new Date(data.completedAt) : undefined,
-    } as FirestoreInterviewSession;
+    } as HiringPost;
   });
 }
 
-export async function getInterviewSession(sessionId: string): Promise<FirestoreInterviewSession | null> {
-  const sessionRef = doc(db, 'interviews', sessionId);
-  const snapshot = await getDoc(sessionRef);
+export async function getAllHiringPosts(): Promise<HiringPost[]> {
+  const q = query(
+    collection(db, 'hiring_posts'),
+    where('status', '==', 'active'),
+    orderBy('createdAt', 'desc')
+  );
   
-  if (!snapshot.exists()) return null;
+  const snapshot = await getDocs(q);
   
-  const data = snapshot.data();
-  return {
-    id: snapshot.id,
-    ...data,
-    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-    completedAt: data.completedAt instanceof Timestamp ? data.completedAt.toDate() : data.completedAt ? new Date(data.completedAt) : undefined,
-  } as FirestoreInterviewSession;
-}
-
-// Analytics
-export interface UserAnalytics {
-  totalSessions: number;
-  averageScore: number;
-  scoreHistory: { date: string; score: number }[];
-  skillBreakdown: { skill: string; score: number }[];
-  rolePerformance: { role: JobRole; sessions: number; avgScore: number }[];
-  improvementAreas: string[];
-}
-
-export async function getUserAnalytics(userId: string): Promise<UserAnalytics> {
-  const interviews = await getUserInterviews(userId);
-  const completedInterviews = interviews.filter(i => i.completedAt);
-  
-  if (completedInterviews.length === 0) {
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
     return {
-      totalSessions: 0,
-      averageScore: 0,
-      scoreHistory: [],
-      skillBreakdown: [],
-      rolePerformance: [],
-      improvementAreas: [],
-    };
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+    } as HiringPost;
+  });
+}
+
+export async function updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+  
+  if (userSnap.exists()) {
+    await updateDoc(userRef, updates);
+    return;
   }
 
-  // Calculate score history (last 10 sessions)
-  const scoreHistory = completedInterviews
-    .slice(0, 10)
-    .reverse()
-    .map(interview => ({
-      date: interview.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      score: interview.totalScore,
-    }));
-
-  // Calculate skill breakdown from feedback
-  const allFeedback = completedInterviews.flatMap(i => i.feedback);
-  const skillBreakdown = [
-    { skill: 'Clarity', score: Math.round(allFeedback.reduce((acc, f) => acc + f.clarity, 0) / allFeedback.length) || 0 },
-    { skill: 'Relevance', score: Math.round(allFeedback.reduce((acc, f) => acc + f.relevance, 0) / allFeedback.length) || 0 },
-    { skill: 'Technical', score: Math.round(allFeedback.reduce((acc, f) => acc + (f.technicalAccuracy || 0), 0) / allFeedback.length) || 0 },
-    { skill: 'Communication', score: Math.round(allFeedback.reduce((acc, f) => acc + f.communication, 0) / allFeedback.length) || 0 },
-  ];
-
-  // Calculate role performance
-  const roleGroups = completedInterviews.reduce((acc, interview) => {
-    if (!acc[interview.jobRole]) {
-      acc[interview.jobRole] = { sessions: 0, totalScore: 0 };
-    }
-    acc[interview.jobRole].sessions++;
-    acc[interview.jobRole].totalScore += interview.totalScore;
-    return acc;
-  }, {} as Record<JobRole, { sessions: number; totalScore: number }>);
-
-  const rolePerformance = Object.entries(roleGroups).map(([role, data]) => ({
-    role: role as JobRole,
-    sessions: data.sessions,
-    avgScore: Math.round((data.totalScore / data.sessions) * 10) / 10,
-  }));
-
-  // Find improvement areas (skills below 7)
-  const improvementAreas = skillBreakdown
-    .filter(s => s.score < 7)
-    .map(s => s.skill);
-
-  return {
-    totalSessions: completedInterviews.length,
-    averageScore: Math.round(completedInterviews.reduce((acc, i) => acc + i.totalScore, 0) / completedInterviews.length * 10) / 10,
-    scoreHistory,
-    skillBreakdown,
-    rolePerformance,
-    improvementAreas,
-  };
+  const hrRef = doc(db, 'hr_profiles', userId);
+  const hrSnap = await getDoc(hrRef);
+  if (hrSnap.exists()) {
+    await updateDoc(hrRef, updates);
+  }
 }
 
 // Photo operations
 export async function uploadProfilePhoto(userId: string, file: File): Promise<string> {
   try {
-    console.log('Starting photo upload for user:', userId);
     const fileName = `${Date.now()}-${file.name}`;
     const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
     
-    console.log('Uploading file to storage:', file.name, 'Size:', file.size);
     const uploadResult = await uploadBytes(storageRef, file);
-    console.log('File uploaded to storage successfully:', uploadResult.ref.fullPath);
-    
-    // Get the download URL
     const downloadUrl = await getDownloadURL(uploadResult.ref);
-    console.log('Download URL obtained:', downloadUrl);
-    console.log('URL Length:', downloadUrl.length);
     
-    // Update user profile with new avatar URL directly
-    const userRef = doc(db, 'users', userId);
-    console.log('Updating Firestore document:', userRef.path, 'with avatar URL');
-    console.log('Avatar URL to save:', downloadUrl);
-    
-    const updateData = { 
-      avatar: downloadUrl 
-    };
-    console.log('Update data:', updateData);
-    
-    await updateDoc(userRef, updateData);
-    console.log('✅ Firestore updated with avatar URL successfully');
-    
-    // Verify the update
-    const updatedDoc = await getDoc(userRef);
-    const savedAvatar = updatedDoc.data()?.avatar;
-    console.log('Verification - Current avatar in Firestore:', savedAvatar);
-    console.log('Avatar saved correctly:', savedAvatar === downloadUrl);
+    await updateUserProfile(userId, { avatar: downloadUrl });
     
     return downloadUrl;
   } catch (error) {
-    console.error('❌ Error uploading profile photo:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error code:', (error as any).code);
-    }
+    console.error('Error uploading profile photo:', error);
     throw error;
   }
 }
 
 export async function deleteProfilePhoto(userId: string): Promise<void> {
   try {
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
+    const profile = await getUserProfile(userId);
     
-    if (userDoc.exists()) {
-      const avatarUrl = userDoc.data()?.avatar;
-      
-      // Delete from storage if URL exists
-      if (avatarUrl) {
-        try {
-          const photoRef = ref(storage, avatarUrl);
-          await deleteObject(photoRef);
-        } catch (error) {
-          console.warn('Error deleting file from storage:', error);
-        }
+    if (profile && profile.avatar) {
+      try {
+        const photoRef = ref(storage, profile.avatar);
+        await deleteObject(photoRef);
+      } catch (error) {
+        console.warn('Error deleting file from storage:', error);
       }
       
-      // Update profile to remove avatar
-      await updateDoc(userRef, { 
-        avatar: '' // Use empty string instead of undefined
-      });
+      await updateUserProfile(userId, { avatar: '' });
     }
   } catch (error) {
     console.error('Error deleting profile photo:', error);
     throw error;
+  }
+}
+
+// Interview Session operations
+export type FirestoreInterviewSession = InterviewSession;
+
+export interface UserAnalytics {
+  totalSessions: number;
+  averageScore: number;
+  scoreHistory: { date: string; score: number }[];
+  skillBreakdown: { skill: string; score: number }[];
+}
+
+export async function getUserInterviews(userId: string): Promise<FirestoreInterviewSession[]> {
+  const q = query(
+    collection(db, 'interview_sessions'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+  
+  const snapshot = await getDocs(q);
+  
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+      completedAt: data.completedAt ? (data.completedAt instanceof Timestamp ? data.completedAt.toDate() : new Date(data.completedAt)) : undefined,
+    } as FirestoreInterviewSession;
+  });
+}
+
+export async function getUserAnalytics(userId: string): Promise<UserAnalytics> {
+  const sessions = await getUserInterviews(userId);
+  const completedSessions = sessions.filter(s => s.totalScore !== undefined);
+  
+  const totalSessions = completedSessions.length;
+  const averageScore = totalSessions > 0 
+    ? completedSessions.reduce((acc, s) => acc + (s.totalScore || 0), 0) / totalSessions 
+    : 0;
+
+  const scoreHistory = completedSessions
+    .slice(0, 7)
+    .reverse()
+    .map(s => ({
+      date: s.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      score: s.totalScore || 0
+    }));
+
+  // Calculate skill breakdown from feedback
+  const breakdown = {
+    technical: { total: 0, count: 0 },
+    communication: { total: 0, count: 0 },
+    clarity: { total: 0, count: 0 },
+    relevance: { total: 0, count: 0 }
+  };
+
+  completedSessions.forEach(session => {
+    session.feedback?.forEach(f => {
+      if (f.technicalAccuracy !== undefined) {
+        breakdown.technical.total += f.technicalAccuracy;
+        breakdown.technical.count++;
+      }
+      breakdown.communication.total += f.communication;
+      breakdown.communication.count++;
+      breakdown.clarity.total += f.clarity;
+      breakdown.clarity.count++;
+      breakdown.relevance.total += f.relevance;
+      breakdown.relevance.count++;
+    });
+  });
+
+  const getAvg = (stat: { total: number, count: number }) => 
+    stat.count > 0 ? Number((stat.total / stat.count).toFixed(1)) : 0;
+
+  return {
+    totalSessions,
+    averageScore: Number(averageScore.toFixed(1)),
+    scoreHistory,
+    skillBreakdown: [
+      { skill: 'Technical', score: getAvg(breakdown.technical) || Number((averageScore * 0.9).toFixed(1)) },
+      { skill: 'Communication', score: getAvg(breakdown.communication) || Number((averageScore * 0.85).toFixed(1)) },
+      { skill: 'Clarity', score: getAvg(breakdown.clarity) || Number((averageScore * 0.95).toFixed(1)) },
+      { skill: 'Relevance', score: getAvg(breakdown.relevance) || Number((averageScore * 0.9).toFixed(1)) },
+    ]
+  };
+}
+
+export async function createInterviewSession(
+  userId: string,
+  jobRole: JobRole,
+  difficulty: Difficulty,
+  roundType: RoundType,
+  questions: InterviewQuestion[],
+  resumeContent?: string
+): Promise<{ id: string }> {
+  const sessionData = {
+    userId,
+    jobRole,
+    difficulty,
+    roundType,
+    questions,
+    resumeContent: resumeContent || null,
+    answers: {},
+    feedback: [],
+    totalScore: 0,
+    createdAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(collection(db, 'interview_sessions'), sessionData);
+  return { id: docRef.id };
+}
+
+export async function completeInterviewSession(
+  sessionId: string,
+  answers: Record<string, string>,
+  feedback: QuestionFeedback[],
+  totalScore: number
+): Promise<void> {
+  const sessionRef = doc(db, 'interview_sessions', sessionId);
+  await updateDoc(sessionRef, {
+    answers,
+    feedback,
+    totalScore,
+    completedAt: serverTimestamp(),
+  });
+}
+
+export async function updateUserStats(userId: string, totalScore: number): Promise<void> {
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+  
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    const newTotalInterviews = (data.totalInterviews || 0) + 1;
+    const newAverageScore = ((data.averageScore || 0) * (data.totalInterviews || 0) + totalScore) / newTotalInterviews;
+    
+    await updateDoc(userRef, {
+      totalInterviews: newTotalInterviews,
+      averageScore: Number(newAverageScore.toFixed(1)),
+    });
   }
 }

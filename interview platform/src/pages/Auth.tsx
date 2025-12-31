@@ -383,12 +383,31 @@ const Auth = () => {
                 </TabsContent>
               </Tabs>
 
-              <p className="text-xs text-gray-500 text-center pt-6 border-t border-gray-700/50">
-                By continuing, you agree to our{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300 hover:underline">Terms of Service</a>{' '}
-                and{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300 hover:underline">Privacy Policy</a>
-              </p>
+              <div className="space-y-4 pt-6 border-t border-gray-700/50">
+                <p className="text-xs text-gray-500 text-center">
+                  By continuing, you agree to our{' '}
+                  <a href="#" className="text-blue-400 hover:text-blue-300 hover:underline">Terms of Service</a>{' '}
+                  and{' '}
+                  <a href="#" className="text-blue-400 hover:text-blue-300 hover:underline">Privacy Policy</a>
+                </p>
+                
+                <div className="relative">
+                  <Separator className="bg-gray-600" />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 px-4 text-xs text-gray-400">
+                    or
+                  </span>
+                </div>
+
+                <p className="text-sm text-center text-gray-400">
+                  Are you an HR professional?{' '}
+                  <button
+                    onClick={() => navigate('/hr/signup')}
+                    className="text-blue-400 hover:text-blue-300 font-semibold hover:underline"
+                  >
+                    Sign up for HR Portal
+                  </button>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

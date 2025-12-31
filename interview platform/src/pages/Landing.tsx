@@ -46,6 +46,11 @@ const Landing = () => {
                   Sign In
                 </Button>
               </Link>
+              <Link to="/hr/signup">
+                <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-gray-700/50">
+                  HR Portal
+                </Button>
+              </Link>
               <Link to="/setup">
                 <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6">
                   Start Free Trial
@@ -259,6 +264,70 @@ const Landing = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HR Portal Section */}
+      <section className="relative z-10 max-w-7xl mx-auto px-6 py-24">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-12 md:p-16 relative overflow-hidden">
+          <div className="absolute -top-20 -left-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 mb-8">
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                <span className="text-sm text-slate-400">
+                  For HR Teams
+                </span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                Elevate Your Hiring Process
+              </h2>
+              <p className="text-slate-400 text-lg mb-8">
+                Use PrepBot's AI-powered interview platform to screen candidates, assess technical skills, and make data-driven hiring decisions.
+              </p>
+              
+              <ul className="space-y-4 mb-8">
+                {[
+                  "AI-powered candidate screening",
+                  "Standardized interview assessments",
+                  "Real-time candidate analytics",
+                  "Reduce hiring bias with objective scoring",
+                  "Track hiring metrics and ROI"
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center text-slate-300">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <Link to="/hr/signup">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-8"
+                >
+                  Sign Up for HR Portal
+                  <ArrowRight className="ml-3 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              {[
+                { label: "Save Time", value: "70%" },
+                { label: "Reduce Bias", value: "AI" },
+                { label: "Better Hires", value: "3x" },
+                { label: "Feedback", value: "Real-time" },
+              ].map((stat, idx) => (
+                <div key={idx} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 text-center hover:border-purple-500/50 transition-colors">
+                  <div className="text-2xl md:text-3xl font-bold text-purple-400 mb-2">{stat.value}</div>
+                  <div className="text-sm text-slate-400">{stat.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
