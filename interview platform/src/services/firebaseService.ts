@@ -9,6 +9,7 @@ import {
   orderBy,
   addDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
@@ -126,6 +127,11 @@ export async function createHiringPost(postData: Omit<HiringPost, 'id' | 'create
   } as HiringPost;
 }
 
+export async function deleteHiringPost(postId: string): Promise<void> {
+  const postRef = doc(db, 'hiring_posts', postId);
+  await deleteDoc(postRef);
+}
+
 export async function getHRHiringPosts(hrId: string): Promise<HiringPost[]> {
   const q = query(
     collection(db, 'hiring_posts'),
@@ -139,6 +145,8 @@ export async function getHRHiringPosts(hrId: string): Promise<HiringPost[]> {
     const data = doc.data();
     return {
       id: doc.id,
+      requirements: [],
+      responsibilities: [],
       ...data,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
     } as HiringPost;
@@ -148,20 +156,24 @@ export async function getHRHiringPosts(hrId: string): Promise<HiringPost[]> {
 export async function getAllHiringPosts(): Promise<HiringPost[]> {
   const q = query(
     collection(db, 'hiring_posts'),
-    where('status', '==', 'active'),
-    orderBy('createdAt', 'desc')
+    where('status', '==', 'active')
   );
   
   const snapshot = await getDocs(q);
   
-  return snapshot.docs.map(doc => {
+  const posts = snapshot.docs.map(doc => {
     const data = doc.data();
     return {
       id: doc.id,
+      requirements: [],
+      responsibilities: [],
       ...data,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
     } as HiringPost;
   });
+
+  // Sort manually if needed to avoid composite index requirement
+  return posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
@@ -186,14 +198,65 @@ export async function uploadProfilePhoto(userId: string, file: File): Promise<st
     const fileName = `${Date.now()}-${file.name}`;
     const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
     
-    const uploadResult = await uploadBytes(storageRef, file);
+    const metadata = {
+      contentType: file.type || 'image/jpeg',
+      cacheControl: 'public, max-age=86400',
+      customMetadata: {
+        userId: userId,
+        uploadedAt: new Date().toISOString(),
+      }
+    };
+    
+    const uploadResult = await uploadBytes(storageRef, file, metadata);
     const downloadUrl = await getDownloadURL(uploadResult.ref);
     
     await updateUserProfile(userId, { avatar: downloadUrl });
     
     return downloadUrl;
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    
+    if (errorMsg.includes('CORS')) {
+      console.error('CORS Error: Firebase Storage bucket needs CORS configuration.');
+      console.error('Follow the steps in FIREBASE_CORS_FIX.md to resolve this.');
+    } else if (errorMsg.includes('permission-denied') || errorMsg.includes('Permission denied')) {
+      console.error('Permission Error: Check Firebase Storage security rules and authentication.');
+    }
+    
     console.error('Error uploading profile photo:', error);
+    throw error;
+  }
+}
+
+export async function uploadHiringPostImage(hrId: string, file: File): Promise<string> {
+  try {
+    const fileName = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `hiring-posts/${hrId}/${fileName}`);
+    
+    const metadata = {
+      contentType: file.type || 'image/jpeg',
+      cacheControl: 'public, max-age=3600',
+      customMetadata: {
+        uploadedBy: hrId,
+        uploadedAt: new Date().toISOString(),
+      }
+    };
+    
+    const uploadResult = await uploadBytes(storageRef, file, metadata);
+    const downloadUrl = await getDownloadURL(uploadResult.ref);
+    
+    return downloadUrl;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    
+    if (errorMsg.includes('CORS')) {
+      console.error('CORS Error: Firebase Storage bucket needs CORS configuration.');
+      console.error('Follow the steps in FIREBASE_CORS_FIX.md to resolve this.');
+    } else if (errorMsg.includes('permission-denied') || errorMsg.includes('Permission denied')) {
+      console.error('Permission Error: Check Firebase Storage security rules and authentication.');
+    }
+    
+    console.error('Error uploading hiring post image:', error);
     throw error;
   }
 }

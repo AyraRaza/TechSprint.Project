@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,11 +22,12 @@ const GoogleIcon = () => (
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { login, signup, loginWithGoogle } = useAuth();
+  const { login, signup, loginWithGoogle, user } = useAuth();
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [shouldNavigate, setShouldNavigate] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
@@ -36,6 +37,14 @@ const Auth = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    if (shouldNavigate && user) {
+      const destination = user.role === 'HR' ? '/hr/dashboard' : '/dashboard';
+      navigate(destination, { replace: true });
+      setShouldNavigate(false);
+    }
+  }, [user, shouldNavigate, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,9 +58,8 @@ const Auth = () => {
     setIsLoading(false);
 
     if (result.success) {
-      alert("navigating dashboard")
       toast({ title: 'Welcome back!', description: 'You have successfully logged in' });
-      navigate('/dashboard',{replace:true});
+      setShouldNavigate(true);
     } else {
       toast({ title: 'Login failed', description: result.error, variant: 'destructive' });
     }
@@ -80,7 +88,7 @@ const Auth = () => {
 
     if (result.success) {
       toast({ title: 'Account created!', description: 'Welcome to AI Interview Practice' });
-      navigate('/dashboard');
+      setShouldNavigate(true);
     } else {
       toast({ title: 'Signup failed', description: result.error, variant: 'destructive' });
     }
@@ -93,7 +101,7 @@ const Auth = () => {
 
     if (result.success) {
       toast({ title: 'Welcome!', description: 'You have successfully signed in with Google' });
-      navigate('/dashboard');
+      setShouldNavigate(true);
     } else if (result.error !== 'Sign-in cancelled') {
       toast({ title: 'Google sign-in failed', description: result.error, variant: 'destructive' });
     }

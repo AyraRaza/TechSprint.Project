@@ -98,6 +98,7 @@ export interface HiringPost {
   responsibilities: string[];
   status: 'active' | 'closed';
   createdAt: Date;
+  imageUrl?: string;
 }
 
 export interface AnalyticsData {

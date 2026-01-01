@@ -15,13 +15,15 @@ import InterviewSession from "./pages/InterviewSession";
 import Results from "./pages/Results";
 import HRSignup from "./pages/HRSignup";
 import HRDashboard from "./pages/HRDashboard";
+import HRMyPosts from "./pages/HRMyPosts";
+import JobAlerts from "./pages/JobAlerts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark">
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <TooltipProvider>
         <AuthProvider>
           <Toaster />
@@ -59,6 +61,16 @@ const App = () => (
               <Route path="/hr/dashboard" element={
                 <ProtectedRoute>
                   <HRDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/hr/my-posts" element={
+                <ProtectedRoute>
+                  <HRMyPosts />
+                </ProtectedRoute>
+              } />
+              <Route path="/job-alerts" element={
+                <ProtectedRoute>
+                  <JobAlerts />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
