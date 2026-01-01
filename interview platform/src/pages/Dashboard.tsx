@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 
 const Dashboard = () => {
@@ -130,10 +131,15 @@ const Dashboard = () => {
                 <Video className="h-5 w-5" />
                 <span>Interviews</span>
               </Link>
+              <Link to="/job-alerts" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600">
+                <Bell className="h-5 w-5" />
+                <span>Job Alerts</span>
+              </Link>
               <Link to="/profile" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600">
                 <Users className="h-5 w-5" />
                 <span>Profile</span>
               </Link>
+              <ThemeToggle />
             </div>
           </div>
         </div>
