@@ -381,7 +381,7 @@ const HRSignup = () => {
               <p className="text-sm text-gray-400">
                 Already have an account?{' '}
                 <button
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/hr/login')}
                   className="text-blue-400 hover:text-blue-300 font-medium hover:underline"
                 >
                   Sign in here

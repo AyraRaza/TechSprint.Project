@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
-import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback, HiringPost } from '@/types/interview';
+import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback, HiringPost, JobApplication } from '@/types/interview';
 
 // User operations
 export async function createUserProfile(userId: string, email: string, name: string): Promise<UserProfile> {
@@ -421,4 +421,44 @@ export async function updateUserStats(userId: string, totalScore: number): Promi
       averageScore: Number(newAverageScore.toFixed(1)),
     });
   }
+}
+
+// Job Application operations
+export async function submitJobApplication(applicationData: Omit<JobApplication, 'id' | 'createdAt' | 'status'>): Promise<string> {
+  const data = {
+    ...applicationData,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+  };
+  
+  const docRef = await addDoc(collection(db, 'job_applications'), data);
+  return docRef.id;
+}
+
+export async function getHRApplications(hrId: string): Promise<JobApplication[]> {
+  const q = query(
+    collection(db, 'job_applications'),
+    where('hrId', '==', hrId),
+    orderBy('createdAt', 'desc')
+  );
+  
+  const snapshot = await getDocs(q);
+  
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+    } as JobApplication;
+  });
+}
+
+export async function updateApplicationStatus(applicationId: string, status: JobApplication['status']): Promise<void> {
+  const applicationRef = doc(db, 'job_applications', applicationId);
+  // Using setDoc with merge: true can sometimes bypass specific updateDoc permission issues
+  await setDoc(applicationRef, { 
+    status,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
 }

@@ -491,10 +491,13 @@ const HRDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-green-500/50 transition-colors shadow-xl">
+            <Card 
+              className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-green-500/50 transition-colors shadow-xl cursor-pointer group"
+              onClick={() => navigate('/hr/applications')}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center text-white">
-                  <Users className="w-5 h-5 mr-2 text-green-400" />
+                  <Users className="w-5 h-5 mr-2 text-green-400 group-hover:scale-110 transition-transform" />
                   Candidate Pool
                 </CardTitle>
                 <CardDescription className="text-gray-400">

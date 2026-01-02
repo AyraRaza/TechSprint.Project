@@ -10,6 +10,19 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ThemeToggle } from '@/components/ThemeToggle';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { submitJobApplication } from '@/services/firebaseService';
+import { uploadResume } from '@/services/imageUpload';
+import { Loader2, FileText, Upload, X } from 'lucide-react';
 
 const JobAlerts = () => {
   const { user } = useAuth();
@@ -17,10 +30,85 @@ const JobAlerts = () => {
   const [posts, setPosts] = React.useState<HiringPost[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
+  
+  // Application form state
+  const [isApplyDialogOpen, setIsApplyDialogOpen] = React.useState(false);
+  const [selectedJob, setSelectedJob] = React.useState<HiringPost | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [resumeFile, setResumeFile] = React.useState<File | null>(null);
+  const [applicationData, setApplicationData] = React.useState({
+    name: '',
+    email: '',
+    phone: '',
+    coverLetter: ''
+  });
 
   React.useEffect(() => {
+    if (user) {
+      setApplicationData(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }));
+    }
     loadPosts();
-  }, []);
+  }, [user]);
+
+  const handleApplyClick = (post: HiringPost) => {
+    if (!user) {
+      toast.error("Please sign in to apply for jobs");
+      navigate('/auth');
+      return;
+    }
+    setSelectedJob(post);
+    setIsApplyDialogOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size should be less than 5MB");
+        return;
+      }
+      setResumeFile(file);
+    }
+  };
+
+  const handleApplicationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedJob || !user || !resumeFile) {
+      toast.error("Please complete all required fields and upload your resume");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const resumeUrl = await uploadResume(resumeFile);
+      
+      await submitJobApplication({
+        postId: selectedJob.id,
+        hrId: selectedJob.hrId,
+        candidateId: user.id,
+        candidateName: applicationData.name,
+        candidateEmail: applicationData.email,
+        candidatePhone: applicationData.phone,
+        resumeUrl: resumeUrl,
+        coverLetter: applicationData.coverLetter,
+        jobTitle: selectedJob.title
+      });
+
+      toast.success(`Application sent to ${selectedJob.companyName}!`);
+      setIsApplyDialogOpen(false);
+      setResumeFile(null);
+      setApplicationData(prev => ({ ...prev, phone: '', coverLetter: '' }));
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast.error("Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const loadPosts = async () => {
     try {
@@ -171,9 +259,7 @@ const JobAlerts = () => {
                 <div className="p-6 pt-0 mt-auto">
                   <Button 
                     className="w-full bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 text-white rounded-xl shadow-md transition-all"
-                    onClick={() => {
-                      toast.success(`Application sent to ${post.companyName}!`);
-                    }}
+                    onClick={() => handleApplyClick(post)}
                   >
                     Apply Now
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -183,6 +269,136 @@ const JobAlerts = () => {
             ))}
           </div>
         )}
+
+        <Dialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>
+          <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">Apply for {selectedJob?.title}</DialogTitle>
+              <DialogDescription className="text-gray-500 dark:text-gray-400">
+                Complete the form below and upload your resume to apply for this position at {selectedJob?.companyName}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleApplicationSubmit} className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    value={applicationData.name}
+                    onChange={(e) => setApplicationData({...applicationData, name: e.target.value})}
+                    required
+                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email"
+                    value={applicationData.email}
+                    onChange={(e) => setApplicationData({...applicationData, email: e.target.value})}
+                    required
+                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input 
+                  id="phone" 
+                  value={applicationData.phone}
+                  onChange={(e) => setApplicationData({...applicationData, phone: e.target.value})}
+                  placeholder="+1 (555) 000-0000"
+                  className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resume">Resume (PDF, Max 5MB)</Label>
+                <div className="relative">
+                  {resumeFile ? (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-200 truncate max-w-[300px]">
+                          {resumeFile.name}
+                        </span>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setResumeFile(null)}
+                        className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-full transition-colors"
+                      >
+                        <X className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center w-full">
+                      <label 
+                        htmlFor="resume-upload" 
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                      >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                          <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-400">PDF, DOCX (MAX. 5MB)</p>
+                        </div>
+                        <input 
+                          id="resume-upload" 
+                          type="file" 
+                          className="hidden" 
+                          accept=".pdf,.docx,.doc"
+                          onChange={handleFileChange}
+                          required
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="coverLetter">Cover Letter (Optional)</Label>
+                <Textarea 
+                  id="coverLetter" 
+                  value={applicationData.coverLetter}
+                  onChange={(e) => setApplicationData({...applicationData, coverLetter: e.target.value})}
+                  placeholder="Why are you a good fit for this role?"
+                  className="min-h-[100px] bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsApplyDialogOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !resumeFile}
+                  className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Application'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

@@ -40,11 +40,19 @@ const Auth = () => {
 
   useEffect(() => {
     if (shouldNavigate && user) {
-      const destination = user.role === 'HR' ? '/hr/dashboard' : '/dashboard';
-      navigate(destination, { replace: true });
+      if (user.role === 'HR') {
+        toast({ 
+          title: 'HR Account Detected', 
+          description: 'Please use the HR Portal to login.', 
+          variant: 'destructive' 
+        });
+        setShouldNavigate(false);
+        return;
+      }
+      navigate('/dashboard', { replace: true });
       setShouldNavigate(false);
     }
-  }, [user, shouldNavigate, navigate]);
+  }, [user, shouldNavigate, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +195,7 @@ const Auth = () => {
                 </div>
               </div>
               <div>
-                <CardTitle className="text-3xl font-bold mb-2">Welcome Back</CardTitle>
+                <CardTitle className="text-3xl font-bold mb-2">Candidate Sign In</CardTitle>
                 <CardDescription className="text-gray-400">
                   Sign in to continue your interview preparation journey
                 </CardDescription>
@@ -409,10 +417,10 @@ const Auth = () => {
                 <p className="text-sm text-center text-gray-400">
                   Are you an HR professional?{' '}
                   <button
-                    onClick={() => navigate('/hr/signup')}
+                    onClick={() => navigate('/hr/login')}
                     className="text-blue-400 hover:text-blue-300 font-semibold hover:underline"
                   >
-                    Sign up for HR Portal
+                    Go to HR Portal
                   </button>
                 </p>
               </div>
