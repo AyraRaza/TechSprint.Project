@@ -101,6 +101,21 @@ export interface HiringPost {
   imageUrl?: string;
 }
 
+export interface JobApplication {
+  id: string;
+  postId: string;
+  hrId: string;
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidatePhone?: string;
+  resumeUrl: string;
+  coverLetter?: string;
+  status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'interview_sent' | 'apology_sent';
+  createdAt: Date;
+  jobTitle: string; // Denormalized for easier display
+}
+
 export interface AnalyticsData {
   totalSessions: number;
   averageScore: number;

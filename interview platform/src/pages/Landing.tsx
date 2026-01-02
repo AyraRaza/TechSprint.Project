@@ -46,7 +46,7 @@ const Landing = () => {
                   Sign In
                 </Button>
               </Link>
-              <Link to="/hr/signup">
+              <Link to="/hr/login">
                 <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-gray-700/50">
                   HR Portal
                 </Button>

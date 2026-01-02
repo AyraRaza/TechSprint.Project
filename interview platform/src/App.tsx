@@ -14,7 +14,9 @@ import InterviewSetup from "./pages/InterviewSetup";
 import InterviewSession from "./pages/InterviewSession";
 import Results from "./pages/Results";
 import HRSignup from "./pages/HRSignup";
+import HRLogin from "./pages/HRLogin";
 import HRDashboard from "./pages/HRDashboard";
+import HRApplications from "./pages/HRApplications";
 import HRMyPosts from "./pages/HRMyPosts";
 import JobAlerts from "./pages/JobAlerts";
 import NotFound from "./pages/NotFound";
@@ -58,9 +60,15 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/hr/signup" element={<HRSignup />} />
+              <Route path="/hr/login" element={<HRLogin />} />
               <Route path="/hr/dashboard" element={
                 <ProtectedRoute>
                   <HRDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/hr/applications" element={
+                <ProtectedRoute>
+                  <HRApplications />
                 </ProtectedRoute>
               } />
               <Route path="/hr/my-posts" element={
