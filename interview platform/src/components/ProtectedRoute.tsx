@@ -11,6 +11,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Logo from '@/components/Logo';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -32,18 +33,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         {/* Loading Content */}
         <div className="relative z-10 text-center">
           {/* Animated Logo */}
-          <div className="relative mb-10">
-            <div className="w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
-              <div className="w-24 h-24 bg-white/20 rounded-xl flex items-center justify-center">
-                <Brain className="h-14 w-14 text-white" />
-              </div>
+          <div className="flex justify-center mb-10">
+            <div className="relative">
+              <Logo 
+                className="scale-150 mb-4" 
+                iconClassName="w-16 h-16" 
+                textClassName="text-3xl"
+              />
+              <div className="absolute inset-0 -m-8 w-48 h-48 border-4 border-transparent border-t-blue-500/30 border-r-purple-500/30 rounded-full animate-spin"></div>
             </div>
-            <div className="absolute inset-0 w-32 h-32 border-4 border-transparent border-t-white border-r-white rounded-2xl animate-spin"></div>
-            
-            {/* Orbiting Dots */}
-            <div className="absolute -top-4 -right-4 w-6 h-6 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-bounce"></div>
-            <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-bounce delay-300"></div>
-            <div className="absolute top-1/2 -right-8 w-5 h-5 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full animate-bounce delay-700"></div>
           </div>
 
           {/* Loading Text */}

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import Logo from '@/components/Logo';
 import { Building, ArrowLeft, Loader2, Mail, Lock, Eye, EyeOff, Shield, BarChart, Users } from 'lucide-react';
 
 const HRLogin = () => {
@@ -63,14 +64,7 @@ const HRLogin = () => {
 
       {/* Header */}
       <header className="relative z-10 p-6 flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <Building size={24} />
-          </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
-            HR Portal
-          </span>
-        </div>
+        <Logo />
         <Button
           variant="outline"
           onClick={() => navigate('/')}

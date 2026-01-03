@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
-import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback, HiringPost, JobApplication } from '@/types/interview';
+import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback, HiringPost, JobApplication, Notification } from '@/types/interview';
 
 // User operations
 export async function createUserProfile(userId: string, email: string, name: string): Promise<UserProfile> {
@@ -261,6 +261,26 @@ export async function uploadHiringPostImage(hrId: string, file: File): Promise<s
   }
 }
 
+export async function uploadResume(file: File): Promise<string> {
+  try {
+    const fileName = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `resumes/${fileName}`);
+    
+    const metadata = {
+      contentType: file.type || 'application/pdf',
+      cacheControl: 'public, max-age=31536000',
+    };
+    
+    const uploadResult = await uploadBytes(storageRef, file, metadata);
+    const downloadUrl = await getDownloadURL(uploadResult.ref);
+    
+    return downloadUrl;
+  } catch (error) {
+    console.error('Error uploading resume:', error);
+    throw error;
+  }
+}
+
 export async function deleteProfilePhoto(userId: string): Promise<void> {
   try {
     const profile = await getUserProfile(userId);
@@ -461,4 +481,39 @@ export async function updateApplicationStatus(applicationId: string, status: Job
     status,
     updatedAt: serverTimestamp()
   }, { merge: true });
+}
+
+// Notification operations
+export async function createNotification(notificationData: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<void> {
+  const data = {
+    ...notificationData,
+    read: false,
+    createdAt: serverTimestamp(),
+  };
+  
+  await addDoc(collection(db, 'notifications'), data);
+}
+
+export async function getUserNotifications(userId: string): Promise<Notification[]> {
+  const q = query(
+    collection(db, 'notifications'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+  
+  const snapshot = await getDocs(q);
+  
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+    } as Notification;
+  });
+}
+
+export async function markNotificationAsRead(notificationId: string): Promise<void> {
+  const notificationRef = doc(db, 'notifications', notificationId);
+  await updateDoc(notificationRef, { read: true });
 }

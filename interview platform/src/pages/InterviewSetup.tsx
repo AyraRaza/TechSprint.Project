@@ -37,6 +37,7 @@ import {
 import { JOB_ROLES, DIFFICULTIES, ROUND_TYPES, JobRole, Difficulty, RoundType } from '@/types/interview';
 import { parseResume, calculateATSScore, ATSScore } from '@/lib/gemini';
 import { cn } from '@/lib/utils';
+import Logo from '@/components/Logo';
 
 
 const InterviewSetup = () => {
@@ -208,12 +209,7 @@ const InterviewSetup = () => {
         <div className="px-8 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                PrepBot
-              </span>
+              <Logo />
             </Link>
             <div className="flex items-center space-x-4">
               <Link to="/dashboard">

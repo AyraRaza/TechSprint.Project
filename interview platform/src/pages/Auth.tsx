@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import Logo from '@/components/Logo';
 import { Sparkles, ArrowLeft, Loader2, Mail, Lock, User, Eye, EyeOff, Brain, Shield, BarChart } from 'lucide-react';
 
 
@@ -126,14 +127,7 @@ const Auth = () => {
 
       {/* Header with Logo */}
       <header className="relative z-10 p-6 flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <Brain size={24} />
-          </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-            PrepBot
-          </span>
-        </div>
+        <Logo />
         <div className="flex items-center space-x-4">
           <Button
             variant="outline"

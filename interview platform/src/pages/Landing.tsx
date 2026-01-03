@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import Logo from "@/components/Logo";
 import {
   ArrowRight,
   Brain,
@@ -33,12 +34,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                PrepBot
-              </span>
+              <Logo />
             </div>
             <div className="flex items-center space-x-6">
               <Link to="/auth">
@@ -286,7 +282,7 @@ const Landing = () => {
                 Elevate Your Hiring Process
               </h2>
               <p className="text-slate-400 text-lg mb-8">
-                Use PrepBot's AI-powered interview platform to screen candidates, assess technical skills, and make data-driven hiring decisions.
+                Use HireBotics's AI-powered interview platform to screen candidates, assess technical skills, and make data-driven hiring decisions.
               </p>
               
               <ul className="space-y-4 mb-8">
@@ -366,12 +362,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="relative z-10 border-t border-border/50 py-8 mt-20">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">PrepBot</span>
-          </div>
+          <Logo />
         </div>
       </footer>
     </div>
