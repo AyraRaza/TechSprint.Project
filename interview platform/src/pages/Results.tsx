@@ -36,6 +36,7 @@ import {
 import { InterviewSession } from '@/types/interview';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 const Results = () => {
   const location = useLocation();
@@ -113,12 +114,7 @@ const Results = () => {
         <div className="px-8 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                PrepBot
-              </span>
+              <Logo />
             </Link>
             <div className="flex items-center space-x-4">
               <Button variant="outline" className="border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800">

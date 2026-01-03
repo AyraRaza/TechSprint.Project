@@ -2,11 +2,16 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Users, Briefcase, TrendingUp, LogOut, MapPin, DollarSign, Clock, Settings, BarChart3, FileText, Plus, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { getHRHiringPosts, createHiringPost, deleteHiringPost } from '@/services/firebaseService';
-import { uploadImage } from '@/services/imageUpload';
+import { 
+  Building, Users, Briefcase, TrendingUp, LogOut, MapPin, 
+  DollarSign, Clock, Settings, BarChart3, FileText, Plus, 
+  Image as ImageIcon, Loader2, Trash2, LayoutDashboard, 
+  Search, Bell, Menu, X, ChevronRight, ExternalLink, Globe
+} from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { getHRHiringPosts, createHiringPost, deleteHiringPost, uploadHiringPostImage } from '@/services/firebaseService';
 import { HiringPost } from '@/types/interview';
+import Logo from '@/components/Logo';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,16 +33,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const HRDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [posts, setPosts] = React.useState<HiringPost[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
   const [formData, setFormData] = React.useState({
     title: '',
@@ -47,6 +59,12 @@ const HRDashboard = () => {
     requirements: '',
     responsibilities: '',
   });
+
+  const sidebarLinks = [
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/hr/dashboard' },
+    { name: 'My Posts', icon: FileText, path: '/hr/my-posts' },
+    { name: 'Candidates', icon: Users, path: '/hr/applications' },
+  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -74,7 +92,7 @@ const HRDashboard = () => {
     try {
       let imageUrl = '';
       if (selectedFile) {
-        imageUrl = await uploadImage(selectedFile);
+        imageUrl = await uploadHiringPostImage(user.id, selectedFile);
       }
 
       await createHiringPost({
@@ -118,6 +136,14 @@ const HRDashboard = () => {
     }
   }, [user]);
 
+  React.useEffect(() => {
+    if (location.state?.openDialog) {
+      setIsDialogOpen(true);
+      // Clear state to avoid reopening on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
   const loadPosts = async () => {
     if (!user) return;
     try {
@@ -147,476 +173,378 @@ const HRDashboard = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <Loader2 className="animate-spin h-10 w-10 text-blue-500 mx-auto mb-4" />
+          <p className="text-gray-400 font-medium">Loading Dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 bg-gray-900/50 backdrop-blur-md border-b border-gray-700/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Building className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">HR Dashboard</h1>
-                <p className="text-sm text-gray-400">Welcome back, {user.name}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => navigate('/hr/my-posts')} className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
-                <FileText className="w-4 h-4 mr-2" />
-                My Posts
-              </Button>
-              <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button variant="outline" onClick={handleLogout} className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#0B0F1A] text-slate-200 flex overflow-hidden">
+      {/* Sidebar */}
+      <aside 
+        className={cn(
+          "bg-[#111827] border-r border-slate-800 transition-all duration-300 z-50 flex flex-col",
+          isSidebarOpen ? "w-64" : "w-20"
+        )}
+      >
+        <div className="p-6">
+          <Logo showText={isSidebarOpen} />
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Company Info */}
-          <div className="mb-8">
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="flex items-center text-blue-400">
-                  <Building className="w-5 h-5 mr-2" />
-                  Company Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/30">
-                    <p className="text-sm font-medium text-gray-400 mb-1">Company</p>
-                    <p className="text-lg font-semibold text-white">{user.companyName}</p>
-                  </div>
-                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/30">
-                    <p className="text-sm font-medium text-gray-400 mb-1">Company Size</p>
-                    <p className="text-lg font-semibold text-white">{user.companySize}</p>
-                  </div>
-                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/30">
-                    <p className="text-sm font-medium text-gray-400 mb-1">Your Role</p>
-                    <p className="text-lg font-semibold text-white">{user.hrRole}</p>
-                  </div>
-                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/30">
-                    <p className="text-sm font-medium text-gray-400 mb-1">Email</p>
-                    <p className="text-lg font-semibold text-white">{user.email}</p>
-                  </div>
-                </div>
-                {(user.companyWebsite || user.linkedin) && (
-                  <div className="mt-4 flex space-x-4">
-                    {user.companyWebsite && (
-                      <a
-                        href={user.companyWebsite}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center"
-                      >
-                        🌐 Company Website
-                      </a>
-                    )}
-                    {user.linkedin && (
-                      <a
-                        href={user.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center"
-                      >
-                        💼 LinkedIn Profile
-                      </a>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Dashboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-blue-500/50 transition-colors shadow-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Total Interviews</CardTitle>
-                <Briefcase className="h-4 w-4 text-blue-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">0</div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Interviews conducted
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-green-500/50 transition-colors shadow-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Active Candidates</CardTitle>
-                <Users className="h-4 w-4 text-green-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">0</div>
-                <p className="text-xs text-gray-500 mt-1">
-                  In hiring process
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-purple-500/50 transition-colors shadow-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Success Rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-purple-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">0%</div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Interview completion rate
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-orange-500/50 transition-colors shadow-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Avg. Score</CardTitle>
-                <BarChart3 className="h-4 w-4 text-orange-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">0.0</div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Candidate performance
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-blue-500/50 transition-colors shadow-xl cursor-pointer group">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-white">
-                      <Plus className="w-5 h-5 mr-2 text-blue-400 group-hover:scale-110 transition-transform" />
-                      Create Hiring Post
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Post a new job opening and find the best talent
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
-                      Create New Post
-                    </Button>
-                  </CardContent>
-                </Card>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
-                <DialogHeader>
-                  <DialogTitle>Create Hiring Post</DialogTitle>
-                  <DialogDescription className="text-gray-400">
-                    Fill in the details for the new job opening.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Job Title</Label>
-                      <Input
-                        id="title"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Senior Frontend Developer"
-                        className="bg-gray-800 border-gray-700"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Location</Label>
-                      <Input
-                        id="location"
-                        name="location"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        placeholder="e.g. New York, NY or Remote"
-                        className="bg-gray-800 border-gray-700"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="jobType">Type</Label>
-                      <Select onValueChange={handleSelectChange} defaultValue={formData.jobType}>
-                        <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue placeholder="Select job type" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                          <SelectItem value="Full-time">Full-time</SelectItem>
-                          <SelectItem value="Part-time">Part-time</SelectItem>
-                          <SelectItem value="Contract">Contract</SelectItem>
-                          <SelectItem value="Internship">Internship</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="salaryRange">Salary</Label>
-                      <Input
-                        id="salaryRange"
-                        name="salaryRange"
-                        value={formData.salaryRange}
-                        onChange={handleInputChange}
-                        placeholder="e.g. $80k - $120k"
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      placeholder="Describe the role..."
-                      className="bg-gray-800 border-gray-700 min-h-[80px]"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="requirements">Requirements</Label>
-                      <Textarea
-                        id="requirements"
-                        name="requirements"
-                        value={formData.requirements}
-                        onChange={handleInputChange}
-                        placeholder="One per line..."
-                        className="bg-gray-800 border-gray-700 min-h-[100px]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="responsibilities">Responsibilities</Label>
-                      <Textarea
-                        id="responsibilities"
-                        name="responsibilities"
-                        value={formData.responsibilities}
-                        onChange={handleInputChange}
-                        placeholder="One per line..."
-                        className="bg-gray-800 border-gray-700 min-h-[100px]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Job Banner</Label>
-                    <Label
-                      htmlFor="image-upload"
-                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors"
-                    >
-                      {previewUrl ? (
-                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <ImageIcon className="w-8 h-8 text-gray-400 mb-2" />
-                          <p className="text-xs text-gray-400">Click to upload hiring banner</p>
-                        </div>
-                      )}
-                      <input
-                        id="image-upload"
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                      />
-                    </Label>
-                  </div>
-
-                  <DialogFooter className="sticky bottom-0 bg-gray-900 pt-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700">
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        'Create Post'
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-
-            <Card className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-purple-500/50 transition-colors shadow-xl cursor-pointer group" onClick={() => navigate('/hr/my-posts')}>
-              <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <FileText className="w-5 h-5 mr-2 text-purple-400 group-hover:scale-110 transition-transform" />
-                  My Posts
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Manage all your created job openings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full border-purple-600/50 text-purple-400 hover:bg-purple-600/10 hover:border-purple-500">
-                  View My Posts
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-green-500/50 transition-colors shadow-xl cursor-pointer group"
-              onClick={() => navigate('/hr/applications')}
+        <nav className="flex-1 px-4 space-y-2 mt-4">
+          {sidebarLinks.map((link) => (
+            <button
+              key={link.name}
+              onClick={() => navigate(link.path)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
+                location.pathname === link.path 
+                  ? "bg-blue-600/10 text-blue-400" 
+                  : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-100"
+              )}
             >
-              <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <Users className="w-5 h-5 mr-2 text-green-400 group-hover:scale-110 transition-transform" />
-                  Candidate Pool
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  View and manage candidates in your hiring pipeline
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full border-green-600/50 text-green-400 hover:bg-green-600/10 hover:border-green-500">
-                  View Candidates
-                </Button>
-              </CardContent>
-            </Card>
+              <link.icon className={cn(
+                "w-5 h-5",
+                location.pathname === link.path ? "text-blue-400" : "group-hover:text-slate-100"
+              )} />
+              {isSidebarOpen && <span className="font-medium">{link.name}</span>}
+              {isSidebarOpen && location.pathname === link.path && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-800">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200"
+          >
+            <LogOut className="w-5 h-5" />
+            {isSidebarOpen && <span className="font-medium">Sign Out</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Navigation */}
+        <header className="h-20 bg-[#111827]/50 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between z-40">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+            >
+              {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <div className="relative hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input 
+                type="text" 
+                placeholder="Search anything..." 
+                className="bg-slate-900/50 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-64"
+              />
+            </div>
           </div>
 
-          {/* Active Hiring Posts */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-              <Briefcase className="w-5 h-5 mr-2 text-blue-400" />
-              Your Active Hiring Posts
-            </h2>
-            {posts.length === 0 ? (
-              <Card className="bg-gray-800/50 border-gray-700/50 p-12 text-center">
-                <div className="mx-auto w-16 h-16 rounded-full bg-gray-900/50 flex items-center justify-center mb-4">
-                  <Briefcase className="w-8 h-8 text-gray-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">No active posts yet</h3>
-                <p className="text-gray-400">Your job openings will appear here once they are created.</p>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {posts.map((post) => (
-                  <Card key={post.id} className="bg-gray-800/70 backdrop-blur-xl border-gray-700/50 hover:border-blue-500/30 transition-all shadow-xl overflow-hidden">
-                    {post.imageUrl && (
-                      <div className="w-full h-48 overflow-hidden">
-                        <img 
-                          src={post.imageUrl} 
-                          alt={post.title} 
-                          className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" 
-                        />
-                      </div>
-                    )}
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-xl font-bold text-white">{post.title}</CardTitle>
-                          <CardDescription className="text-blue-400 font-medium">{post.companyName}</CardDescription>
-                        </div>
-                        <div className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded-full border border-green-500/20">
-                          {post.status.toUpperCase()}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1 text-gray-500" />
-                          {post.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1 text-gray-500" />
-                          {post.jobType}
-                        </div>
-                        {post.salaryRange && (
-                          <div className="flex items-center">
-                            <DollarSign className="w-4 h-4 mr-1 text-gray-500" />
-                            {post.salaryRange}
+          <div className="flex items-center gap-6">
+            <button className="relative p-2 text-slate-400 hover:text-white transition-colors">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-[#111827]" />
+            </button>
+            <Separator orientation="vertical" className="h-8 bg-slate-800" />
+            <div className="flex items-center gap-3 pl-2">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-white">{user.name}</p>
+                <p className="text-xs text-slate-500">{user.hrRole}</p>
+              </div>
+              <Avatar className="w-10 h-10 border-2 border-slate-800 ring-2 ring-blue-500/20">
+                <AvatarImage src={user.avatar} />
+                <AvatarFallback className="bg-blue-600 text-white font-bold">
+                  {user.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Dashboard Area */}
+        <main className="flex-1 overflow-y-auto bg-[#0B0F1A] p-8 custom-scrollbar">
+          <div className="max-w-7xl mx-auto space-y-8 pb-12">
+            {/* Hero Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div>
+                <h2 className="text-3xl font-bold text-white tracking-tight">Overview</h2>
+                <p className="text-slate-400 mt-1">Manage your recruitment process and company profile.</p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6 h-11 rounded-xl flex items-center gap-2">
+                      <Plus className="w-5 h-5" />
+                      Post New Job
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[650px] bg-[#111827] border-slate-800 text-slate-200">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold text-white">Create Job Opportunity</DialogTitle>
+                      <DialogDescription className="text-slate-400">
+                        Specify the role requirements and details to attract top candidates.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <ScrollArea className="max-h-[80vh] px-1">
+                      <form onSubmit={handleSubmit} className="space-y-6 py-6 pr-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-slate-300">Job Title</Label>
+                            <Input name="title" value={formData.title} onChange={handleInputChange} placeholder="e.g. Full Stack Developer" className="bg-slate-900 border-slate-800 h-11 focus:ring-blue-500" required />
                           </div>
-                        )}
-                      </div>
-                      <p className="text-gray-300 text-sm line-clamp-3">{post.description}</p>
-                      <div className="pt-4 border-t border-gray-700/50 flex justify-between items-center">
-                        <span className="text-xs text-gray-500">
-                          Posted on {post.createdAt.toLocaleDateString()}
-                        </span>
-                        <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10">
-                            View Details
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                            onClick={() => handleDeletePost(post.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="space-y-2">
+                            <Label className="text-slate-300">Location</Label>
+                            <Input name="location" value={formData.location} onChange={handleInputChange} placeholder="e.g. Remote / San Francisco" className="bg-slate-900 border-slate-800 h-11" required />
+                          </div>
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-slate-300">Job Type</Label>
+                            <Select onValueChange={handleSelectChange} defaultValue={formData.jobType}>
+                              <SelectTrigger className="bg-slate-900 border-slate-800 h-11">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-slate-900 border-slate-800">
+                                <SelectItem value="Full-time">Full-time</SelectItem>
+                                <SelectItem value="Part-time">Part-time</SelectItem>
+                                <SelectItem value="Contract">Contract</SelectItem>
+                                <SelectItem value="Internship">Internship</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-slate-300">Salary Range</Label>
+                            <Input name="salaryRange" value={formData.salaryRange} onChange={handleInputChange} placeholder="e.g. $120k - $150k" className="bg-slate-900 border-slate-800 h-11" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Job Description</Label>
+                          <Textarea name="description" value={formData.description} onChange={handleInputChange} className="bg-slate-900 border-slate-800 min-h-[120px]" required />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-slate-300">Key Requirements (one per line)</Label>
+                            <Textarea name="requirements" value={formData.requirements} onChange={handleInputChange} className="bg-slate-900 border-slate-800 min-h-[100px]" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-slate-300">Responsibilities (one per line)</Label>
+                            <Textarea name="responsibilities" value={formData.responsibilities} onChange={handleInputChange} className="bg-slate-900 border-slate-800 min-h-[100px]" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label className="text-slate-300">Hiring Banner</Label>
+                          <div 
+                            onClick={() => document.getElementById('job-image')?.click()}
+                            className="w-full h-32 border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/50 transition-all bg-slate-900/50 group"
+                          >
+                            {previewUrl ? (
+                              <img src={previewUrl} className="w-full h-full object-cover rounded-xl" />
+                            ) : (
+                              <>
+                                <ImageIcon className="w-8 h-8 text-slate-500 mb-2 group-hover:text-blue-500 transition-colors" />
+                                <span className="text-xs text-slate-500 font-medium">Click to upload banner image</span>
+                              </>
+                            )}
+                            <input id="job-image" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                          </div>
+                        </div>
+
+                        <DialogFooter>
+                          <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-slate-400 hover:text-white hover:bg-slate-800">Cancel</Button>
+                          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 h-11 px-8 rounded-xl">
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Create Posting'}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </ScrollArea>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { label: 'Total Interviews', value: '0', icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+                { label: 'Active Candidates', value: '0', icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+                { label: 'Success Rate', value: '0%', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+                { label: 'Avg. Score', value: '0.0', icon: BarChart3, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+              ].map((stat, i) => (
+                <Card key={i} className="bg-[#111827] border-slate-800/50 shadow-sm p-6 hover:translate-y-[-2px] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{stat.label}</p>
+                      <h3 className="text-3xl font-bold text-white mt-1">{stat.value}</h3>
+                    </div>
+                    <div className={cn("p-3 rounded-xl", stat.bg)}>
+                      <stat.icon className={cn("w-6 h-6", stat.color)} />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-400">
+                    <TrendingUp className="w-3 h-3" />
+                    <span>0% from last month</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Active Jobs Table/List */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-blue-500" />
+                    Active Postings
+                  </h3>
+                  <Button variant="link" className="text-blue-400 p-0 h-auto" onClick={() => navigate('/hr/my-posts')}>
+                    View All <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {posts.length === 0 ? (
+                    <div className="bg-[#111827] border-2 border-dashed border-slate-800 rounded-3xl p-12 text-center">
+                      <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
+                        <Briefcase className="w-10 h-10 text-slate-700" />
                       </div>
-                    </CardContent>
+                      <h4 className="text-white font-semibold text-lg">No active jobs</h4>
+                      <p className="text-slate-500 max-w-xs mx-auto mt-2">Ready to grow your team? Create your first hiring post to start receiving applications.</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-6 border-slate-700 text-slate-300 hover:bg-slate-800 rounded-xl h-11 px-8"
+                        onClick={() => setIsDialogOpen(true)}
+                      >
+                        Create Your First Post
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {posts.slice(0, 4).map((post) => (
+                        <Card key={post.id} className="bg-[#111827] border-slate-800/50 p-5 group hover:border-slate-700 transition-all duration-300">
+                          <div className="flex gap-6 items-center">
+                            {post.imageUrl ? (
+                              <img src={post.imageUrl} className="w-24 h-24 rounded-2xl object-cover ring-4 ring-slate-900" />
+                            ) : (
+                              <div className="w-24 h-24 rounded-2xl bg-slate-900 flex items-center justify-center border border-slate-800">
+                                <Building className="w-10 h-10 text-slate-700" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-lg font-bold text-white truncate">{post.title}</h4>
+                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10">Active</Badge>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-slate-500">
+                                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {post.location}</span>
+                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {post.jobType}</span>
+                                {post.salaryRange && <span className="flex items-center gap-1 font-medium text-slate-400"><DollarSign className="w-3.5 h-3.5" /> {post.salaryRange}</span>}
+                              </div>
+                              <div className="mt-3 flex items-center gap-2">
+                                <p className="text-xs text-slate-600 uppercase tracking-widest font-bold">Applications: 0</p>
+                                <Separator orientation="vertical" className="h-3 bg-slate-800" />
+                                <p className="text-xs text-slate-600">Posted: {post.createdAt.toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon" className="text-slate-500 hover:text-white hover:bg-slate-800" onClick={() => navigate(`/hr/my-posts`)}>
+                                <ChevronRight className="w-5 h-5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-red-500/70 hover:text-red-400 hover:bg-red-500/10" onClick={() => handleDeletePost(post.id)}>
+                                <Trash2 className="w-5 h-5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sidebar Cards */}
+              <div className="space-y-8">
+                {/* Company Info Card */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Building className="w-5 h-5 text-purple-500" />
+                    Organization
+                  </h3>
+                  <Card className="bg-[#111827] border-slate-800/50 p-6 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[60px] rounded-full -mr-16 -mt-16" />
+                    <div className="relative z-10 flex items-center gap-4 mb-6">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-2xl font-bold shadow-xl">
+                        {user.companyName?.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-white leading-tight">{user.companyName}</h4>
+                        <p className="text-slate-500 text-sm">Corporate Account</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 relative z-10">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Industry Size</span>
+                        <span className="text-slate-200 font-medium">{user.companySize} employees</span>
+                      </div>
+                      <Separator className="bg-slate-800/50" />
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Current Role</span>
+                        <span className="text-slate-200 font-medium">{user.hrRole}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 flex flex-col gap-2">
+                      {user.companyWebsite && (
+                        <a href={user.companyWebsite} target="_blank" className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-sm font-medium transition-all">
+                          Visit Website <Globe className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
                   </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
 
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-gray-700/50 py-12 bg-gray-900/50 backdrop-blur-md mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Building className="w-5 h-5 text-white" />
+                {/* Quick Shortcuts */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-slate-400" />
+                    Shortcuts
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => navigate('/hr/applications')} className="p-4 bg-[#111827] border border-slate-800/50 rounded-2xl hover:bg-slate-800/50 transition-all text-left group">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <Users className="w-5 h-5 text-emerald-500" />
+                      </div>
+                      <span className="text-sm font-bold text-white">Candidates</span>
+                    </button>
+                    <button onClick={() => navigate('/hr/my-posts')} className="p-4 bg-[#111827] border border-slate-800/50 rounded-2xl hover:bg-slate-800/50 transition-all text-left group">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <FileText className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <span className="text-sm font-bold text-white">Archives</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">PrepBot HR</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} PrepBot. All rights reserved.
-            </div>
-            <div className="flex items-center space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Support</a>
             </div>
           </div>
-        </div>
-      </footer>
+        </main>
+      </div>
     </div>
   );
 };

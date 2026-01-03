@@ -36,6 +36,7 @@ import ProctoringOverlay from '@/components/ProctoringOverlay';
 import useProctor from '@/hooks/useProctor';
 import useProctorStore from '@/store/useProctorStore';
 import { QuestionFeedback } from '@/types/interview';
+import Logo from '@/components/Logo';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -296,12 +297,7 @@ const InterviewSession = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                  PrepBot
-                </span>
+                <Logo />
               </Link>
               <div className="hidden md:flex items-center space-x-6 text-sm">
                 <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">

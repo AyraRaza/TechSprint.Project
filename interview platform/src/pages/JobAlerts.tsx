@@ -4,12 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building, MapPin, DollarSign, Clock, Briefcase, Brain, Home, Video, Users, Bell, ArrowRight, Search, Filter } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAllHiringPosts } from '@/services/firebaseService';
+import { getAllHiringPosts, submitJobApplication, uploadResume } from '@/services/firebaseService';
 import { HiringPost } from '@/types/interview';
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ThemeToggle } from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
+import { useNotifications } from '@/hooks/useNotifications';
+import { formatDistanceToNow } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -20,8 +31,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { submitJobApplication } from '@/services/firebaseService';
-import { uploadResume } from '@/services/imageUpload';
 import { Loader2, FileText, Upload, X } from 'lucide-react';
 
 const JobAlerts = () => {
@@ -29,6 +38,7 @@ const JobAlerts = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = React.useState<HiringPost[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const { notifications, unreadCount, markAsRead } = useNotifications();
   const [searchTerm, setSearchTerm] = React.useState('');
   
   // Application form state
@@ -135,12 +145,7 @@ const JobAlerts = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-10">
               <Link to="/" className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                  PrepBot
-                </span>
+                <Logo />
               </Link>
             </div>
             <div className="hidden md:flex items-center space-x-8">
@@ -160,6 +165,55 @@ const JobAlerts = () => {
                 <Users className="h-5 w-5" />
                 <span>Profile</span>
               </Link>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative p-2 text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 p-0 shadow-xl rounded-2xl overflow-hidden">
+                  <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                    <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <Bell className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          onClick={() => !notification.read && markAsRead(notification.id)}
+                          className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition-colors ${
+                            !notification.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <h4 className={`text-sm font-semibold ${!notification.read ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                              {notification.title}
+                            </h4>
+                            <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                              {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            {notification.message}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <ThemeToggle />
             </div>
           </div>
