@@ -127,6 +127,38 @@ const HRApplications = () => {
     app.candidateEmail.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getResumeFallbackUrl = (url: string): string | null => {
+    if (!url || !url.includes('res.cloudinary.com')) {
+      return null;
+    }
+
+    if (url.includes('/raw/upload/')) {
+      return url.replace('/raw/upload/', '/image/upload/');
+    }
+
+    if (url.includes('/image/upload/')) {
+      return url.replace('/image/upload/', '/raw/upload/');
+    }
+
+    return null;
+  };
+
+  const handleOpenResume = (resumeUrl: string) => {
+    const opened = window.open(resumeUrl, '_blank', 'noopener,noreferrer');
+    if (opened) {
+      return;
+    }
+
+    const fallbackUrl = getResumeFallbackUrl(resumeUrl);
+    if (fallbackUrl) {
+      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      toast.message('Opened fallback resume URL.');
+      return;
+    }
+
+    toast.error('Unable to open resume. Please allow pop-ups and try again.');
+  };
+
   const getStatusBadge = (status: JobApplication['status']) => {
     switch (status) {
       case 'pending':
@@ -312,13 +344,11 @@ const HRApplications = () => {
                           <Button 
                             variant="ghost" 
                             className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 h-11 px-5 rounded-xl border border-blue-400/20"
-                            asChild
+                            onClick={() => handleOpenResume(app.resumeUrl)}
                           >
-                            <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer">
-                              <FileText className="w-4 h-4 mr-2" />
-                              Resume
-                              <ExternalLink className="w-3.5 h-3.5 ml-1.5 opacity-50" />
-                            </a>
+                            <FileText className="w-4 h-4 mr-2" />
+                            Resume
+                            <ExternalLink className="w-3.5 h-3.5 ml-1.5 opacity-50" />
                           </Button>
 
                           <DropdownMenu>

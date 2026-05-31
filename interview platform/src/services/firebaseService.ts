@@ -13,11 +13,21 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
+import { db, auth, googleProvider } from '@/lib/firebase';
 import { InterviewSession, UserProfile, JobRole, Difficulty, RoundType, InterviewQuestion, QuestionFeedback, HiringPost, JobApplication, Notification } from '@/types/interview';
 
 // User operations
+export async function signInWithGoogle() {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error('Error signing in with Google:', error);
+    throw error;
+  }
+}
+
 export async function createUserProfile(userId: string, email: string, name: string): Promise<UserProfile> {
   const userRef = doc(db, 'users', userId);
   const profile: Omit<UserProfile, 'createdAt'> & { createdAt: any; role: string } = {
@@ -196,37 +206,15 @@ export async function updateUserProfile(userId: string, updates: Partial<UserPro
   }
 }
 
+import { uploadResume as uploadToCloudinary, uploadImage as uploadImageToCloudinary } from './imageUpload';
+
 // Photo operations
 export async function uploadProfilePhoto(userId: string, file: File): Promise<string> {
   try {
-    const fileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
-    
-    const metadata = {
-      contentType: file.type || 'image/jpeg',
-      cacheControl: 'public, max-age=86400',
-      customMetadata: {
-        userId: userId,
-        uploadedAt: new Date().toISOString(),
-      }
-    };
-    
-    const uploadResult = await uploadBytes(storageRef, file, metadata);
-    const downloadUrl = await getDownloadURL(uploadResult.ref);
-    
+    const downloadUrl = await uploadImageToCloudinary(file);
     await updateUserProfile(userId, { avatar: downloadUrl });
-    
     return downloadUrl;
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    
-    if (errorMsg.includes('CORS')) {
-      console.error('CORS Error: Firebase Storage bucket needs CORS configuration.');
-      console.error('Follow the steps in FIREBASE_CORS_FIX.md to resolve this.');
-    } else if (errorMsg.includes('permission-denied') || errorMsg.includes('Permission denied')) {
-      console.error('Permission Error: Check Firebase Storage security rules and authentication.');
-    }
-    
     console.error('Error uploading profile photo:', error);
     throw error;
   }
@@ -234,32 +222,9 @@ export async function uploadProfilePhoto(userId: string, file: File): Promise<st
 
 export async function uploadHiringPostImage(hrId: string, file: File): Promise<string> {
   try {
-    const fileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `hiring-posts/${hrId}/${fileName}`);
-    
-    const metadata = {
-      contentType: file.type || 'image/jpeg',
-      cacheControl: 'public, max-age=3600',
-      customMetadata: {
-        uploadedBy: hrId,
-        uploadedAt: new Date().toISOString(),
-      }
-    };
-    
-    const uploadResult = await uploadBytes(storageRef, file, metadata);
-    const downloadUrl = await getDownloadURL(uploadResult.ref);
-    
+    const downloadUrl = await uploadImageToCloudinary(file);
     return downloadUrl;
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    
-    if (errorMsg.includes('CORS')) {
-      console.error('CORS Error: Firebase Storage bucket needs CORS configuration.');
-      console.error('Follow the steps in FIREBASE_CORS_FIX.md to resolve this.');
-    } else if (errorMsg.includes('permission-denied') || errorMsg.includes('Permission denied')) {
-      console.error('Permission Error: Check Firebase Storage security rules and authentication.');
-    }
-    
     console.error('Error uploading hiring post image:', error);
     throw error;
   }
@@ -267,17 +232,7 @@ export async function uploadHiringPostImage(hrId: string, file: File): Promise<s
 
 export async function uploadResume(file: File): Promise<string> {
   try {
-    const fileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `resumes/${fileName}`);
-    
-    const metadata = {
-      contentType: file.type || 'application/pdf',
-      cacheControl: 'public, max-age=31536000',
-    };
-    
-    const uploadResult = await uploadBytes(storageRef, file, metadata);
-    const downloadUrl = await getDownloadURL(uploadResult.ref);
-    
+    const downloadUrl = await uploadToCloudinary(file);
     return downloadUrl;
   } catch (error) {
     console.error('Error uploading resume:', error);
@@ -287,18 +242,7 @@ export async function uploadResume(file: File): Promise<string> {
 
 export async function deleteProfilePhoto(userId: string): Promise<void> {
   try {
-    const profile = await getUserProfile(userId);
-    
-    if (profile && profile.avatar) {
-      try {
-        const photoRef = ref(storage, profile.avatar);
-        await deleteObject(photoRef);
-      } catch (error) {
-        console.warn('Error deleting file from storage:', error);
-      }
-      
-      await updateUserProfile(userId, { avatar: '' });
-    }
+    await updateUserProfile(userId, { avatar: '' });
   } catch (error) {
     console.error('Error deleting profile photo:', error);
     throw error;
